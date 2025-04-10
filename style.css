@@ -40,6 +40,8 @@ h2 {
     padding: 20px;
     background-color: #fcf9d7;
     border-radius: 5px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 200px;
 }
 
 .button-container {
@@ -134,4 +136,9 @@ nav a {
 
 .nav-vertical a:hover{
     background-color: #575757;
+}
+
+.show-img{
+    padding: 50px;
+    max-width: 50%;
 }
