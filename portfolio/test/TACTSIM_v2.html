@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TACTSIM — Combat Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
+
+:root {
+  --bg: #0a0c0f; --bg2: #0f1218; --bg3: #141820;
+  --panel: #161b24; --panel2: #1c2230;
+  --border: #2a3448; --border2: #3a4a66;
+  --accent: #e8a020; --accent2: #f5c050;
+  --red: #e03030; --red2: #ff4444;
+  --green: #30c060; --green2: #44ff88;
+  --blue: #3080e0; --blue2: #50a0ff;
+  --purple: #9060e0;
+  --text: #c8d4e8; --text2: #8090a8; --text3: #506080;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: 15px; min-height: 100vh; overflow-x: hidden; }
+body::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; z-index: 9999; }
+
+.header { background: var(--bg2); border-bottom: 2px solid var(--accent); padding: 12px 24px; display: flex; align-items: center; gap: 20px; position: sticky; top: 0; z-index: 100; }
+.logo { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 900; letter-spacing: 4px; color: var(--accent); text-shadow: 0 0 20px rgba(232,160,32,0.4); }
+.logo span { color: var(--text2); font-weight: 300; }
+.header-nav { display: flex; gap: 4px; margin-left: auto; }
+.tab-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); padding: 6px 16px; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+.tab-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tab-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+
+.app { display: flex; height: calc(100vh - 57px); }
+.page { display: none; width: 100%; overflow-y: auto; }
+.page.active { display: flex; flex-direction: column; }
+
+/* CONFIG */
+#page-config { padding: 20px; gap: 20px; flex-direction: column; }
+.config-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.config-section { background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--accent); padding: 16px; }
+.config-section.full-width { grid-column: 1 / -1; }
+.section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.field-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.field-row label { color: var(--text2); font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; min-width: 130px; flex-shrink: 0; }
+input[type="number"], input[type="text"], select { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; font-family: 'Share Tech Mono', monospace; font-size: 13px; width: 100%; transition: border-color 0.2s; }
+input[type="number"]:focus, input[type="text"]:focus, select:focus { outline: none; border-color: var(--accent); }
+select option { background: var(--bg3); }
+.checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.checkbox-row label { color: var(--text); font-size: 13px; font-weight: 500; }
+input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+.entities-container { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.entity-card { background: var(--bg3); border: 1px solid var(--border); padding: 14px; width: 290px; flex-shrink: 0; }
+.entity-card.operator { border-left: 3px solid var(--green); }
+.entity-card.enemy { border-left: 3px solid var(--red); }
+.entity-card-title { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.entity-card.operator .entity-card-title { color: var(--green); }
+.entity-card.enemy .entity-card-title { color: var(--red); }
+.card-field { margin-bottom: 7px; }
+.card-field label { display: block; color: var(--text3); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+.add-btn { background: transparent; border: 1px dashed var(--border2); color: var(--text3); padding: 14px; width: 290px; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+.add-btn:hover { border-color: var(--accent); color: var(--accent); }
+.remove-btn { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 16px; margin-left: auto; transition: color 0.2s; }
+.remove-btn:hover { color: var(--red); }
+
+.weapon-group { background: var(--bg2); border: 1px solid var(--border); padding: 10px; margin-top: 8px; }
+.weapon-group-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+/* AMMO TYPE RADIO */
+.ammo-type-group { display: flex; gap: 6px; margin-top: 8px; }
+.ammo-radio-btn { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text3); padding: 5px 4px; font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; text-align: center; transition: all 0.15s; }
+.ammo-radio-btn:hover { border-color: var(--border2); color: var(--text2); }
+.ammo-radio-btn.active-normal { background: rgba(200,212,232,0.1); border-color: var(--text2); color: var(--text); }
+.ammo-radio-btn.active-pen { background: rgba(48,128,224,0.2); border-color: var(--blue2); color: var(--blue2); }
+.ammo-radio-btn.active-frag { background: rgba(224,48,48,0.2); border-color: var(--red2); color: var(--red2); }
+
+.btn { background: var(--accent); border: none; color: var(--bg); padding: 10px 24px; font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+.btn:hover { background: var(--accent2); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-secondary { background: transparent; border: 1px solid var(--border2); color: var(--text); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); background: transparent; }
+.btn-danger { background: var(--red); color: white; }
+.btn-danger:hover { background: var(--red2); }
+.btn-green { background: var(--green); }
+.btn-green:hover { background: var(--green2); }
+.btn-blue { background: var(--blue); color: white; }
+.btn-blue:hover { background: var(--blue2); }
+
+.armor-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+.armor-mode-btn { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); padding: 8px; font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; text-align: center; transition: all 0.2s; }
+.armor-mode-btn.active { background: var(--blue); border-color: var(--blue2); color: white; }
+
+/* COMBAT */
+#page-combat { flex-direction: column; overflow: hidden; }
+.combat-layout { display: grid; grid-template-columns: 260px 1fr 260px; height: 100%; gap: 0; overflow: hidden; }
+.team-panel { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.team-panel.enemies { border-right: none; border-left: 1px solid var(--border); }
+.team-label { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; flex-shrink: 0; }
+.team-label.ops { color: var(--green); }
+.team-label.enemies-lbl { color: var(--red); }
+
+.char-card { background: var(--bg3); border: 1px solid var(--border); padding: 10px; transition: all 0.15s; position: relative; flex-shrink: 0; }
+.char-card.active-turn { border-color: var(--accent); box-shadow: 0 0 12px rgba(232,160,32,0.2); }
+.char-card.dead { opacity: 0.4; filter: grayscale(1); }
+.char-card.operator-card { border-left: 3px solid var(--green); }
+.char-card.enemy-card { border-left: 3px solid var(--red); }
+.char-name { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.turn-indicator { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse 1s infinite; display: none; }
+.active-turn .turn-indicator { display: block; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+.stat-bar-container { margin-bottom: 4px; }
+.stat-bar-label { display: flex; justify-content: space-between; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+.stat-bar-track { height: 5px; background: var(--bg2); border: 1px solid var(--border); overflow: hidden; }
+.stat-bar-fill { height: 100%; transition: width 0.4s ease; }
+.char-weapon-info { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+.ammo-display { display: flex; align-items: center; gap: 4px; color: var(--accent); }
+.init-badge { background: var(--bg2); border: 1px solid var(--border); color: var(--text3); font-family: 'Share Tech Mono', monospace; font-size: 10px; padding: 1px 5px; margin-left: auto; }
+
+.center-panel { display: flex; flex-direction: column; overflow: hidden; }
+.turn-order-strip { background: var(--bg); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; gap: 6px; align-items: center; overflow-x: auto; flex-shrink: 0; }
+.turn-pip { display: flex; align-items: center; padding: 3px 8px; border: 1px solid var(--border); font-family: 'Rajdhani', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0; transition: all 0.3s; }
+.turn-pip.op { color: var(--green); }
+.turn-pip.en { color: var(--red); }
+.turn-pip.current { border-color: var(--accent); background: rgba(232,160,32,0.1); }
+.turn-pip.dead { opacity: 0.3; text-decoration: line-through; }
+
+.combat-log { flex: 1; overflow-y: auto; padding: 16px; background: var(--bg2); font-family: 'Share Tech Mono', monospace; font-size: 12px; line-height: 1.8; display: flex; flex-direction: column; gap: 2px; }
+.log-entry { padding: 3px 8px; border-left: 2px solid transparent; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:none} }
+.log-turn { border-left-color:var(--accent); color:var(--accent); font-weight:bold; background:rgba(232,160,32,0.05); }
+.log-attack { border-left-color:var(--red); color:var(--text); }
+.log-miss { border-left-color:var(--text3); color:var(--text3); font-style:italic; }
+.log-hit-head { color:var(--accent2); }
+.log-hit-torso { color:var(--text); }
+.log-hit-limb { color:var(--text2); }
+.log-reload { border-left-color:var(--blue); color:var(--blue2); }
+.log-death { border-left-color:var(--red2); color:var(--red2); font-weight:bold; background:rgba(224,48,48,0.05); }
+.log-victory { border-left-color:var(--green); color:var(--green2); font-weight:bold; background:rgba(48,192,96,0.08); font-size:14px; }
+.log-armor { color:var(--blue2); }
+.log-system { color:var(--text3); font-style:italic; }
+.log-special { border-left-color:var(--purple); color:var(--purple); }
+
+.action-panel { background: var(--panel2); border-top: 2px solid var(--border); padding: 14px 16px; flex-shrink: 0; }
+.action-panel-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+.action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.action-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 9px 8px; font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; text-align: center; transition: all 0.15s; }
+.action-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.action-btn.action-fire { border-left: 3px solid var(--red); }
+.action-btn.action-reload { border-left: 3px solid var(--blue); }
+.action-btn.action-switch { border-left: 3px solid var(--accent); }
+.action-btn.action-special { border-left: 3px solid var(--purple); }
+
+.target-zone-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.zone-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); padding: 5px 12px; font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
+.zone-btn.zone-head.selected { background: var(--accent2); border-color: var(--accent2); color: var(--bg); }
+.zone-btn.zone-torso.selected { background: var(--red); border-color: var(--red); color: white; }
+.zone-btn.zone-arms.selected { background: var(--blue); border-color: var(--blue); color: white; }
+.zone-btn.zone-legs.selected { background: var(--purple); border-color: var(--purple); color: white; }
+.zone-btn:hover { border-color: var(--border2); color: var(--text); }
+.target-select { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; font-family: 'Share Tech Mono', monospace; font-size: 12px; min-width: 140px; }
+.info-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+.ammo-badge { display: inline-block; padding: 1px 5px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-radius: 2px; }
+.ammo-normal { background: rgba(200,212,232,0.15); color: var(--text2); }
+.ammo-penetrating { background: rgba(48,128,224,0.2); color: var(--blue2); }
+.ammo-fragmentation { background: rgba(224,48,48,0.2); color: var(--red2); }
+
+/* STATS */
+#page-stats { padding: 20px; gap: 16px; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.stat-block { background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--accent); padding: 16px; }
+.stat-table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+.stat-table th { text-align: left; color: var(--text3); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.stat-table td { padding: 5px 8px; border-bottom: 1px solid rgba(42,52,72,0.5); color: var(--text); }
+.stat-table tr:last-child td { border-bottom: none; }
+.stat-table .val { color: var(--accent); text-align: right; }
+.stat-table .val-green { color: var(--green2); text-align: right; }
+.stat-table .val-red { color: var(--red2); text-align: right; }
+.stat-table .val-blue { color: var(--blue2); text-align: right; }
+
+/* BATCH SIM */
+.batch-result-bar { height: 12px; background: var(--bg2); border: 1px solid var(--border); margin: 4px 0; overflow: hidden; border-radius: 2px; }
+.batch-bar-fill-op { height: 100%; background: var(--green); transition: width 0.5s ease; }
+.batch-bar-fill-en { height: 100%; background: var(--red); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+.tag { display: inline-block; padding: 1px 6px; font-size: 10px; font-weight: 700; letter-spacing: 1px; border: 1px solid; text-transform: uppercase; }
+.tag-op { border-color: var(--green); color: var(--green); }
+.tag-en { border-color: var(--red); color: var(--red); }
+.ai-thinking { display: inline-block; color: var(--text3); font-family: 'Share Tech Mono', monospace; font-size: 11px; animation: blink 1s step-end infinite; }
+@keyframes blink { 50%{opacity:0} }
+
+/* HELP PAGE */
+#page-help { padding: 24px; gap: 0; overflow-y: auto; }
+.help-grid { display: grid; grid-template-columns: 220px 1fr; gap: 0; height: 100%; }
+.help-sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; height: fit-content; }
+.help-nav-item { display: block; padding: 8px 20px; font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s; width: 100%; text-align: left; background: none; border-top: none; border-right: none; border-bottom: none; }
+.help-nav-item:hover { color: var(--text); border-left-color: var(--border2); background: rgba(255,255,255,0.02); }
+.help-nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(232,160,32,0.05); }
+.help-content { padding: 0 28px 40px; }
+.help-section { display: none; }
+.help-section.active { display: block; }
+.help-h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+.help-h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text); margin: 24px 0 10px; display: flex; align-items: center; gap: 8px; }
+.help-h2::before { content:''; display:block; width:4px; height:18px; background:var(--accent); flex-shrink:0; }
+.help-p { color: var(--text2); font-size: 14px; line-height: 1.75; margin-bottom: 12px; }
+.help-p strong { color: var(--text); }
+.help-formula { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 12px 16px; font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--accent2); margin: 12px 0; line-height: 1.8; }
+.help-table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 12px; margin: 12px 0; }
+.help-table th { text-align: left; color: var(--text3); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--bg3); }
+.help-table td { padding: 7px 10px; border-bottom: 1px solid rgba(42,52,72,0.4); color: var(--text2); vertical-align: top; }
+.help-table td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+.help-table tr:last-child td { border-bottom: none; }
+.help-tag { display: inline-block; padding: 1px 7px; font-size: 10px; font-weight: 700; letter-spacing: 1px; border-radius: 2px; text-transform: uppercase; margin-right: 4px; }
+.help-tag-green { background: rgba(48,192,96,0.15); color: var(--green2); border: 1px solid var(--green); }
+.help-tag-blue { background: rgba(48,128,224,0.15); color: var(--blue2); border: 1px solid var(--blue); }
+.help-tag-red { background: rgba(224,48,48,0.15); color: var(--red2); border: 1px solid var(--red); }
+.help-tag-yellow { background: rgba(232,160,32,0.15); color: var(--accent2); border: 1px solid var(--accent); }
+.help-callout { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 12px 16px; margin: 12px 0; }
+.help-callout.warn { border-left-color: var(--accent); }
+.help-callout.tip { border-left-color: var(--green); }
+.help-callout p { color: var(--text2); font-size: 13px; line-height: 1.7; margin: 0; }
+.help-callout p strong { color: var(--text); }
+.help-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.help-subtitle { color: var(--text3); font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">TACT<span>SIM</span></div>
+  <div style="color:var(--text3);font-size:12px;letter-spacing:2px;">COMBAT BALANCE SIMULATOR</div>
+  <div class="header-nav">
+    <button class="tab-btn active" id="tab-config" onclick="showPage('config',this)">⚙ CONFIG</button>
+    <button class="tab-btn" id="tab-combat" onclick="showPage('combat',this)">⚔ COMBATE</button>
+    <button class="tab-btn" id="tab-stats" onclick="showPage('stats',this)">📊 ESTADÍSTICAS</button>
+    <button class="tab-btn" id="tab-help" onclick="showPage('help',this)">? AYUDA</button>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- CONFIG PAGE -->
+<div class="page active" id="page-config">
+  <div class="config-grid">
+
+    <!-- Global -->
+    <div class="config-section">
+      <div class="section-title">⚙ Configuración Global</div>
+      <div class="field-row"><label>Modo Armadura</label></div>
+      <div class="armor-toggle">
+        <button class="armor-mode-btn active" id="armor-mode-hp" onclick="setArmorMode('hp')">Vida Extra</button>
+        <button class="armor-mode-btn" id="armor-mode-pct" onclick="setArmorMode('pct')">% Mitigación</button>
+      </div>
+      <div class="field-row">
+        <label>Penaliz. bala incorrecta</label>
+        <input type="checkbox" id="penalty-enabled" checked>
+        <span style="font-size:12px;color:var(--text2)">Activar</span>
+      </div>
+      <div class="field-row">
+        <label>Variación de daño</label>
+        <input type="number" id="dmg-variance" value="15" min="0" max="50" style="width:70px">
+        <span style="font-size:12px;color:var(--text2)">%</span>
+      </div>
+      <hr style="border-color:var(--border);margin:12px 0;">
+      <div style="font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Precisión IA por Zona</div>
+      <div class="field-row"><label>Cabeza (hit%)</label><input type="number" id="ai-acc-head" value="60" min="0" max="100" style="width:70px"><span style="font-size:12px;color:var(--text2)">%</span></div>
+      <div class="field-row"><label>Torso (hit%)</label><input type="number" id="ai-acc-torso" value="85" min="0" max="100" style="width:70px"><span style="font-size:12px;color:var(--text2)">%</span></div>
+      <div class="field-row"><label>Brazos (hit%)</label><input type="number" id="ai-acc-arms" value="70" min="0" max="100" style="width:70px"><span style="font-size:12px;color:var(--text2)">%</span></div>
+      <div class="field-row"><label>Piernas (hit%)</label><input type="number" id="ai-acc-legs" value="75" min="0" max="100" style="width:70px"><span style="font-size:12px;color:var(--text2)">%</span></div>
+    </div>
+
+    <!-- Ammo -->
+    <div class="config-section">
+      <div class="section-title">🔴 Configuración de Balas</div>
+      <div style="font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">🔵 Bala Penetrante</div>
+      <div class="field-row"><label>Bonus vs Armadura</label><input type="number" id="pen-bonus" value="30" min="0" max="300" style="width:70px"><span style="font-size:12px;color:var(--text2)">%</span></div>
+      <div class="field-row" id="pen-penalty-row"><label>Penaliz. vs Carne</label><input type="number" id="pen-penalty" value="20" min="0" max="100" style="width:70px"><span style="font-size:12px;color:var(--text2)">%</span></div>
+      <div style="font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;margin-top:12px;">🔴 Bala Fragmentación</div>
+      <div class="field-row"><label>Bonus vs Carne</label><input type="number" id="frag-bonus" value="30" min="0" max="300" style="width:70px"><span style="font-size:12px;color:var(--text2)">%</span></div>
+      <div class="field-row" id="frag-penalty-row"><label>Penaliz. vs Armadura</label><input type="number" id="frag-penalty" value="20" min="0" max="100" style="width:70px"><span style="font-size:12px;color:var(--text2)">%</span></div>
+    </div>
+
+    <!-- Multipliers -->
+    <div class="config-section">
+      <div class="section-title">🎯 Multiplicadores por Zona</div>
+      <div class="field-row"><label>Cabeza</label><input type="number" id="mult-head" value="2.5" min="0.1" max="10" step="0.1" style="width:80px"><span style="font-size:12px;color:var(--text2)">×</span></div>
+      <div class="field-row"><label>Torso</label><input type="number" id="mult-torso" value="1.0" min="0.1" max="10" step="0.1" style="width:80px"><span style="font-size:12px;color:var(--text2)">×</span></div>
+      <div class="field-row"><label>Brazos</label><input type="number" id="mult-arms" value="0.6" min="0.1" max="10" step="0.1" style="width:80px"><span style="font-size:12px;color:var(--text2)">×</span></div>
+      <div class="field-row"><label>Piernas</label><input type="number" id="mult-legs" value="0.7" min="0.1" max="10" step="0.1" style="width:80px"><span style="font-size:12px;color:var(--text2)">×</span></div>
+    </div>
+
+    <!-- Operators -->
+    <div class="config-section full-width">
+      <div class="section-title">🟢 Operadores (Jugador)</div>
+      <div class="entities-container" id="operators-container"></div>
+      <button class="add-btn" onclick="addOperator()">+ Añadir Operador</button>
+    </div>
+
+    <!-- Enemies -->
+    <div class="config-section full-width">
+      <div class="section-title">🔴 Enemigos (IA)</div>
+      <div class="entities-container" id="enemies-container"></div>
+      <button class="add-btn" onclick="addEnemy()">+ Añadir Enemigo</button>
+    </div>
+
+  </div>
+
+  <div style="padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <button class="btn btn-green" onclick="startCombat()">▶ INICIAR COMBATE</button>
+    <button class="btn btn-blue" onclick="startBatchSim()">⚡ SIMULAR 100 COMBATES IA vs IA</button>
+    <button class="btn btn-secondary" onclick="resetConfig()">↺ RESET CONFIG</button>
+    <span style="color:var(--text3);font-size:12px;font-family:'Share Tech Mono',monospace;" id="config-status"></span>
+  </div>
+</div>
+
+<!-- COMBAT PAGE -->
+<div class="page" id="page-combat">
+  <div class="combat-layout">
+    <div class="team-panel" id="combat-operators">
+      <div class="team-label ops">▲ OPERADORES</div>
+    </div>
+    <div class="center-panel">
+      <div class="turn-order-strip" id="turn-order-strip"></div>
+      <div class="combat-log" id="combat-log"></div>
+      <div class="action-panel" id="action-panel" style="border-top-color:var(--border)">
+        <div class="action-panel-title" id="action-title">ESPERANDO INICIO...</div>
+        <div class="action-grid" id="action-grid">
+          <button class="action-btn action-fire" id="btn-fire" onclick="doAction('fire')" disabled>🔫 DISPARAR</button>
+          <button class="action-btn action-reload" id="btn-reload" onclick="doAction('reload')" disabled>↻ RECARGAR</button>
+          <button class="action-btn action-switch" id="btn-switch" onclick="doAction('switch')" disabled>⇄ CAMBIAR ARMA</button>
+          <button class="action-btn action-special" id="btn-special" onclick="doAction('special')" disabled>★ ESPECIAL</button>
+        </div>
+        <div class="target-zone-row" id="targeting-row" style="display:none;">
+          <span class="info-label">OBJ:</span>
+          <select class="target-select" id="target-select"></select>
+          <span class="info-label">ZONA:</span>
+          <button class="zone-btn zone-head" onclick="selectZone('head')">Cabeza</button>
+          <button class="zone-btn zone-torso" onclick="selectZone('torso')">Torso</button>
+          <button class="zone-btn zone-arms" onclick="selectZone('arms')">Brazos</button>
+          <button class="zone-btn zone-legs" onclick="selectZone('legs')">Piernas</button>
+          <button class="btn" style="padding:5px 14px;font-size:13px;" onclick="confirmFire()">CONFIRMAR</button>
+          <button class="btn btn-secondary" style="padding:5px 14px;font-size:13px;" onclick="cancelFire()">CANCELAR</button>
+        </div>
+      </div>
+    </div>
+    <div class="team-panel enemies" id="combat-enemies">
+      <div class="team-label enemies-lbl">▲ ENEMIGOS</div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS PAGE -->
+<div class="page" id="page-stats">
+  <div style="padding:16px 20px 0;display:flex;align-items:center;gap:16px;">
+    <div class="section-title" style="margin:0;border:none;padding:0;font-size:18px;">📊 ESTADÍSTICAS</div>
+    <button class="btn btn-danger" style="padding:6px 16px;font-size:13px;" onclick="resetStats()">🗑 RESETEAR ESTADÍSTICAS</button>
+  </div>
+  <div class="stats-grid" id="stats-content" style="padding:16px;">
+    <div class="stat-block" style="grid-column:1/-1;">
+      <div style="color:var(--text3);font-family:'Share Tech Mono',monospace;font-size:13px;">No hay estadísticas disponibles. Completá un combate primero.</div>
+    </div>
+  </div>
+</div>
+
+<!-- HELP PAGE -->
+<div class="page" id="page-help">
+  <div class="help-grid">
+
+    <!-- Sidebar nav -->
+    <div class="help-sidebar">
+      <button class="help-nav-item active" onclick="showHelp('overview',this)">📋 Introducción</button>
+      <button class="help-nav-item" onclick="showHelp('turns',this)">🔄 Sistema de Turnos</button>
+      <button class="help-nav-item" onclick="showHelp('actions',this)">⚡ Acciones</button>
+      <button class="help-nav-item" onclick="showHelp('damage',this)">💥 Cálculo de Daño</button>
+      <button class="help-nav-item" onclick="showHelp('ammo',this)">🔴 Tipos de Munición</button>
+      <button class="help-nav-item" onclick="showHelp('armor',this)">🛡 Sistema de Armadura</button>
+      <button class="help-nav-item" onclick="showHelp('weapons',this)">🔫 Armas</button>
+      <button class="help-nav-item" onclick="showHelp('ai',this)">🤖 Comportamiento IA</button>
+      <button class="help-nav-item" onclick="showHelp('batch',this)">⚡ Simulación Masiva</button>
+      <button class="help-nav-item" onclick="showHelp('config',this)">⚙ Guía de Config</button>
+    </div>
+
+    <!-- Content area -->
+    <div class="help-content">
+
+      <!-- OVERVIEW -->
+      <div class="help-section active" id="help-overview">
+        <div class="help-h1">Introducción</div>
+        <div class="help-subtitle">¿Para qué sirve TACTSIM?</div>
+        <div class="help-p">TACTSIM es un simulador de combate por turnos diseñado para <strong>testear el balance de tu videojuego</strong> antes de implementarlo. Podés probar distintas configuraciones de armas, armaduras y equipos para ver cómo se comportan en combate sin tener que programar el juego completo.</div>
+        <div class="help-p">Hay tres modos de uso:</div>
+        <table class="help-table">
+          <tr><th>Modo</th><th>Descripción</th></tr>
+          <tr><td>⚔ Combate manual</td><td>Vos controlás a los operadores turno a turno. Elegís objetivo, zona y tipo de acción. Ideal para testear una situación específica con control total.</td></tr>
+          <tr><td>🤖 Combate IA vs IA</td><td>Ambos equipos son controlados por la IA. Útil para observar el flow de combate sin intervención.</td></tr>
+          <tr><td>⚡ Simulación ×100</td><td>Se corren 100 combates automáticos en segundos y se muestran estadísticas agregadas: win rate, daño promedio, rondas. El método más confiable para testear balance.</td></tr>
+        </table>
+        <div class="help-callout tip"><p><strong>Tip de uso:</strong> Empezá configurando un combate 1v1 simple para entender el sistema, luego escalá a más personajes y usá la simulación ×100 para detectar desbalances.</p></div>
+      </div>
+
+      <!-- TURNS -->
+      <div class="help-section" id="help-turns">
+        <div class="help-h1">Sistema de Turnos</div>
+        <div class="help-subtitle">Orden de iniciativa</div>
+        <div class="help-p">El orden en que actúan los personajes está determinado por su stat de <strong>Iniciativa</strong>. El personaje con mayor iniciativa actúa primero. En caso de empate, los operadores tienen prioridad sobre los enemigos.</div>
+        <div class="help-formula">Orden = sort(todos los personajes) por Iniciativa DESC<br>Si empate → Operadores antes que Enemigos</div>
+        <div class="help-h2">Tira de turno</div>
+        <div class="help-p">La barra superior del combate muestra el orden de turno de todos los personajes. El personaje con borde naranja es el que está actuando en este momento. Los personajes muertos aparecen tachados.</div>
+        <div class="help-h2">Recarga y pérdida de turno</div>
+        <div class="help-p">Cuando un personaje inicia una recarga, pierde los turnos siguientes hasta completarla. El número de turnos perdidos está definido por el stat <strong>Recarga (turnos)</strong> del arma. Durante esos turnos el personaje no puede realizar ninguna acción.</div>
+        <div class="help-formula">Si reloadTurns = 2 → el personaje pierde su próximo turno completo<br>Al final del 2do turno → el arma queda cargada y puede actuar normalmente</div>
+        <div class="help-callout warn"><p><strong>Importante:</strong> La recarga consume turnos completos. Un arma con Recarga = 1 queda lista al inicio del siguiente turno del personaje. Con Recarga = 2, pierde un turno adicional.</p></div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="help-section" id="help-actions">
+        <div class="help-h1">Acciones por Turno</div>
+        <div class="help-subtitle">Cada personaje puede realizar UNA acción por turno</div>
+        <table class="help-table">
+          <tr><th>Acción</th><th>Descripción</th><th>Disponible cuando</th></tr>
+          <tr>
+            <td>🔫 Disparar</td>
+            <td>Atacar a un enemigo. Para operadores: elegís objetivo y zona manualmente. Para la IA: elige automáticamente.</td>
+            <td>El arma tiene al menos 1 bala en el cargador y el personaje no está recargando.</td>
+          </tr>
+          <tr>
+            <td>↻ Recargar</td>
+            <td>Inicia el proceso de recarga. El personaje pierde los siguientes turnos según el stat Recarga del arma.</td>
+            <td>La reserva tiene munición disponible y el cargador no está lleno.</td>
+          </tr>
+          <tr>
+            <td>⇄ Cambiar Arma</td>
+            <td>Alterna entre la Pistola y el Arma Especial. El cambio es inmediato y no consume munición.</td>
+            <td>Siempre disponible, salvo que el personaje esté recargando.</td>
+          </tr>
+          <tr>
+            <td>★ Especial</td>
+            <td>Habilidad especial del operador: recupera el 20% de su HP máximo. Solo usable una vez por combate.</td>
+            <td>No haber usado la habilidad especial en este combate.</td>
+          </tr>
+        </table>
+        <div class="help-h2">Disparar: Ráfaga</div>
+        <div class="help-p">Al seleccionar <strong>Disparar</strong>, el arma activa dispara una cantidad de balas igual a su stat <strong>Ráfaga</strong> (hasta agotar el cargador). Cada bala en la ráfaga se calcula y aplica de forma independiente.</div>
+        <div class="help-formula">Disparos reales = min(burstCount, currentAmmo)<br>Cada disparo → verifica hit → calcula daño → aplica daño</div>
+        <div class="help-callout"><p><strong>Nota:</strong> Si un objetivo cae durante una ráfaga, los disparos restantes no se redirigen automáticamente. El jugador puede elegir un nuevo objetivo en el próximo turno.</p></div>
+      </div>
+
+      <!-- DAMAGE -->
+      <div class="help-section" id="help-damage">
+        <div class="help-h1">Cálculo de Daño</div>
+        <div class="help-subtitle">Fórmula completa de daño por disparo</div>
+        <div class="help-formula">Daño = DañoBase × MultiplicadorZona × VariaciónAleatoria × ModificadorBala</div>
+
+        <div class="help-h2">1. Daño Base</div>
+        <div class="help-p">Es el stat <strong>Daño Base</strong> configurado en el arma. Representa el daño máximo sin variaciones ni multiplicadores.</div>
+
+        <div class="help-h2">2. Multiplicador de Zona</div>
+        <div class="help-p">Cada zona del cuerpo aplica un multiplicador diferente sobre el daño base. Los valores son configurables globalmente.</div>
+        <table class="help-table">
+          <tr><th>Zona</th><th>Multiplicador default</th><th>Descripción</th></tr>
+          <tr><td>🎯 Cabeza</td><td>×2.5</td><td>Zona de alto riesgo / alta recompensa. Elimina rápido pero difícil de acertar (menor % de hit en IA).</td></tr>
+          <tr><td>💥 Torso</td><td>×1.0</td><td>Zona neutral, referencia base. La más fácil de impactar.</td></tr>
+          <tr><td>💢 Brazos</td><td>×0.6</td><td>Daño reducido. Útil cuando el torso está cubierto por armadura fuerte.</td></tr>
+          <tr><td>🦵 Piernas</td><td>×0.7</td><td>Daño ligeramente reducido. Sin armadura en la mayoría de los casos.</td></tr>
+        </table>
+
+        <div class="help-h2">3. Variación Aleatoria</div>
+        <div class="help-p">Simula la imprecisión natural del disparo dentro de la zona elegida. Con <strong>Variación = 15%</strong>, el multiplicador aleatorio oscila entre 0.85 y 1.15.</p>
+        <div class="help-formula">VariaciónAleatoria = 1 - (variance/100) + random() × (variance/100) × 2<br><br>Ejemplo con variance=15%:<br>  Mínimo: 1 - 0.15 = 0.85 (−15%)<br>  Máximo: 1 + 0.15 = 1.15 (+15%)</div>
+
+        <div class="help-h2">4. Modificador de Bala</div>
+        <div class="help-p">Depende del tipo de munición equipada y del contexto del impacto. Ver sección <strong>Tipos de Munición</strong> para el detalle completo.</div>
+
+        <div class="help-h2">Daño mínimo garantizado</div>
+        <div class="help-p">Independientemente de todos los modificadores, el daño mínimo aplicado es siempre <strong>1</strong>. Ningún disparo que impacte puede hacer 0 daño.</div>
+        <div class="help-callout tip"><p><strong>Ejemplo completo:</strong> Subfusil (Daño Base 20) impacta en Cabeza (×2.5) con roll de variación 1.08 y bala Normal → 20 × 2.5 × 1.08 = <strong>54 DMG</strong></p></div>
+      </div>
+
+      <!-- AMMO -->
+      <div class="help-section" id="help-ammo">
+        <div class="help-h1">Tipos de Munición</div>
+        <div class="help-subtitle">Tres variantes por cada tipo de arma</div>
+        <div class="help-p">Cada arma usa un tipo de munición según su categoría (pistola, escopeta, subfusil, fusil). Dentro de ese tipo, existe una de tres variantes de bala que modifica el comportamiento del daño.</div>
+
+        <table class="help-table">
+          <tr><th>Tipo</th><th>Zona ideal</th><th>Efecto correcto</th><th>Efecto incorrecto</th></tr>
+          <tr>
+            <td><span class="help-tag help-tag-blue">Normal</span></td>
+            <td>Cualquiera</td>
+            <td>Daño base sin modificadores</td>
+            <td>Sin penalización</td>
+          </tr>
+          <tr>
+            <td><span class="help-tag help-tag-blue">Penetrante</span></td>
+            <td>Armadura</td>
+            <td>+<em>Bonus%</em> de daño vs armadura</td>
+            <td>−<em>Penaliz%</em> de daño vs carne (si Penalización activada)</td>
+          </tr>
+          <tr>
+            <td><span class="help-tag help-tag-red">Fragmentación</span></td>
+            <td>Carne (sin armadura)</td>
+            <td>+<em>Bonus%</em> de daño vs carne</td>
+            <td>−<em>Penaliz%</em> de daño vs armadura (si Penalización activada)</td></tr>
+        </table>
+
+        <div class="help-h2">¿Qué cuenta como "zona correcta"?</div>
+        <div class="help-p">El sistema detecta si el objetivo <strong>tiene armadura activa</strong> al momento del impacto:</div>
+        <div class="help-formula">Tiene armadura (modo Vida Extra)  → target.armor > 0<br>Tiene armadura (modo % Mitigación) → target.armor > 0 (el %)</div>
+        <div class="help-p">La bala Penetrante recibe bonus cuando el objetivo tiene armadura. La Fragmentación recibe bonus cuando no la tiene (o la armadura ya fue destruida).</div>
+
+        <div class="help-h2">Penalización por zona incorrecta</div>
+        <div class="help-p">Si <strong>Penalización Bala Incorrecta</strong> está activada:</div>
+        <div class="help-formula">Penetrante vs sin armadura → Daño × (1 − penPenalty/100)<br>Fragmentación vs con armadura → Daño × (1 − fragPenalty/100)<br><br>Si Penalización DESACTIVADA → Daño = daño base normal (sin bonus ni penalización)</div>
+        <div class="help-callout warn"><p><strong>Regla importante:</strong> La penalización nunca hace que el daño sea peor que una bala normal que haya fallado la zona. El mínimo garantizado sigue siendo 1. Desactivar la penalización hace que la bala especializada funcione como Normal en zona incorrecta.</p></div>
+
+        <div class="help-h2">Craft: Puntas Perforantes y Expansivas</div>
+        <div class="help-p">En el juego las balas Penetrantes y de Fragmentación se obtienen combinando Balas Normales con <strong>Puntas Perforantes</strong> o <strong>Puntas Expansivas</strong> respectivamente. En el simulador esto se refleja simplemente eligiendo el tipo de bala del arma en la configuración.</div>
+      </div>
+
+      <!-- ARMOR -->
+      <div class="help-section" id="help-armor">
+        <div class="help-h1">Sistema de Armadura</div>
+        <div class="help-subtitle">Dos modos testeables — seleccioná el que querés probar</div>
+
+        <div class="help-h2">Modo A: Armadura como Vida Extra</div>
+        <div class="help-p">La armadura es una <strong>segunda barra de vida</strong> que se agota antes que el HP. Cuando recibís daño, primero se descuenta de la armadura. Solo cuando la armadura llega a 0, el daño excedente pasa al HP.</div>
+        <div class="help-formula">Si armor > 0 y isArmorHit:<br>  absorb = min(armor, damage)<br>  armor -= absorb<br>  overflow = damage - absorb<br>  hp -= overflow  ← solo el exceso llega al HP<br><br>Si armor = 0 (destruida):<br>  hp -= damage  ← todo el daño va al HP</div>
+        <div class="help-p">Este modo favorece la <strong>bala Penetrante</strong> porque hace más daño a la barra de armadura, llegando antes al HP del objetivo.</div>
+
+        <div class="help-h2">Modo B: Armadura como % de Mitigación</div>
+        <div class="help-p">La armadura es un <strong>porcentaje de daño reducido</strong>. Mientras el chaleco esté activo, todos los impactos reciben reducción. El valor configurado en "Armadura" representa directamente el porcentaje mitigado.</div>
+        <div class="help-formula">Si armor > 0 (chaleco activo):<br>  mitigated = damage × (armor / 100)<br>  finalDmg  = damage - mitigated<br>  hp -= finalDmg<br><br>Ejemplo: 100 DMG con armor=30% → 30 mitigado, 70 al HP</div>
+        <div class="help-p">En este modo las balas <strong>Penetrantes</strong> idealmente deberían reducir el % del chaleco (funcionalidad planificada para balance futuro). Por ahora el % se mantiene fijo durante el combate.</div>
+
+        <div class="help-h2">Placas de Armadura</div>
+        <div class="help-p">Cada personaje puede tener un número de <strong>Placas de Armadura</strong> configurables. En el juego real estas placas permiten recuperar armadura durante el combate. En el simulador actual las placas están registradas en los stats pero la mecánica de uso en combate se implementará en una próxima versión.</div>
+        <div class="help-callout"><p><strong>Para testing:</strong> El stat de Armadura en modo Vida Extra funciona como HP adicional puro. Si querés probar un personaje "sin armadura", simplemente poné Armadura = 0.</p></div>
+
+        <div class="help-h2">Diferencias clave entre modos</div>
+        <table class="help-table">
+          <tr><th></th><th>Vida Extra</th><th>% Mitigación</th></tr>
+          <tr><td>La armadura se agota</td><td>Sí, se va reduciendo</td><td>No, el % es fijo (por ahora)</td></tr>
+          <tr><td>Efecto vs high HP</td><td>Prolonga mucho la supervivencia</td><td>Efecto proporcional siempre</td></tr>
+          <tr><td>Bala Penetrante</td><td>Muy efectiva (más daño a armor)</td><td>Efecto igual que normal</td></tr>
+          <tr><td>Bala Fragmentación</td><td>Efectiva solo cuando armor=0</td><td>Siempre penalizada si hay armor</td></tr>
+        </table>
+      </div>
+
+      <!-- WEAPONS -->
+      <div class="help-section" id="help-weapons">
+        <div class="help-h1">Armas</div>
+        <div class="help-subtitle">Cada personaje lleva dos armas: Pistola (fija) + Arma Especial</div>
+
+        <div class="help-h2">Stats de arma</div>
+        <table class="help-table">
+          <tr><th>Stat</th><th>Descripción</th></tr>
+          <tr><td>Daño Base</td><td>Daño por bala antes de multiplicadores. Es la referencia central para el balance.</td></tr>
+          <tr><td>Cargador</td><td>Cantidad de balas disponibles antes de necesitar recargar.</td></tr>
+          <tr><td>Reserva</td><td>Balas adicionales fuera del cargador. Cuando el cargador se vacía y hay reserva, el personaje puede recargar.</td></tr>
+          <tr><td>Ráfaga</td><td>Cantidad de balas disparadas por acción de Disparar. Si es 1 = disparo único. Si es 3 = tres balas por turno.</td></tr>
+          <tr><td>Recarga (turnos)</td><td>Cuántos turnos completos tarda en recargar el arma. Durante ese tiempo el personaje no puede hacer nada más.</td></tr>
+        </table>
+
+        <div class="help-h2">Armas disponibles</div>
+        <table class="help-table">
+          <tr><th>Arma</th><th>DMG</th><th>Cargador</th><th>Reserva</th><th>Ráfaga</th><th>Recarga</th></tr>
+          <tr><td>🔫 Pistola</td><td>25</td><td>15</td><td>60</td><td>1</td><td>1t</td></tr>
+          <tr><td>Escopeta</td><td>60</td><td>6</td><td>24</td><td>1</td><td>2t</td></tr>
+          <tr><td>Subfusil</td><td>20</td><td>30</td><td>90</td><td>3</td><td>1t</td></tr>
+          <tr><td>Fusil de Asalto</td><td>35</td><td>30</td><td>90</td><td>2</td><td>2t</td></tr>
+          <tr><td>Francotirador</td><td>80</td><td>5</td><td>20</td><td>1</td><td>3t</td></tr>
+          <tr><td>Ametralladora</td><td>28</td><td>60</td><td>180</td><td>5</td><td>3t</td></tr>
+        </table>
+        <div class="help-p">Todos los stats son los <strong>valores por defecto</strong> al seleccionar ese tipo de arma. Podés modificarlos libremente en cada personaje para el testing.</div>
+
+        <div class="help-h2">Pistola: arma universal</div>
+        <div class="help-p">Todos los personajes (operadores y enemigos) comparten la misma pistola de respaldo. Sus stats son editables, pero el tipo siempre es Pistola. Es la segunda opción cuando el arma especial se queda sin munición.</div>
+        <div class="help-callout tip"><p><strong>Tip de balance:</strong> La pistola debería ser siempre peor que el arma especial. Un daño base de 20–30 y ráfaga de 1 la hace viable como backup sin opacar el arma principal.</p></div>
+      </div>
+
+      <!-- AI -->
+      <div class="help-section" id="help-ai">
+        <div class="help-h1">Comportamiento de la IA</div>
+        <div class="help-subtitle">IA de dificultad media — gestiona recursos y elige objetivos</div>
+
+        <div class="help-h2">Selección de objetivo</div>
+        <div class="help-p">La IA siempre apunta al oponente vivo con <strong>menor HP</strong>. Esta es la estrategia de focus fire óptima para eliminar amenazas lo antes posible.</div>
+
+        <div class="help-h2">Selección de zona</div>
+        <div class="help-p">La IA elige la zona de forma probabilística. El comportamiento varía según si el objetivo tiene armadura o no:</div>
+        <div class="help-formula">Si objetivo tiene armadura (modo Vida Extra):<br>  60% → Torso<br>  20% → Cabeza<br>  10% → Brazos<br>  10% → Piernas<br><br>Si objetivo sin armadura (o modo % Mitigación):<br>  30% → Cabeza  ← apunta más a la cabeza cuando no hay armor<br>  45% → Torso<br>  13% → Brazos<br>  12% → Piernas</div>
+        <div class="help-p">Estas probabilidades son el <strong>objetivo de zona</strong>. El disparo efectivo también pasa por el <strong>% de precisión configurado</strong>. Si falla la precisión, el disparo se registra como miss.</div>
+
+        <div class="help-h2">Gestión de munición</div>
+        <div class="help-p">La IA gestiona su munición con la siguiente lógica de prioridades en cada turno:</div>
+        <div class="help-formula">1. Si cargador vacío y tiene reserva → RECARGAR<br>2. Si cargador vacío y sin reserva → CAMBIAR ARMA<br>   (si la otra arma tiene munición)<br>3. Si ambas armas sin munición → PASAR TURNO<br>4. En cualquier otro caso → DISPARAR</div>
+
+        <div class="help-h2">Precisión IA por zona</div>
+        <div class="help-p">La precisión es un <strong>% de probabilidad de impacto</strong> por zona, configurable globalmente. Si el roll falla, el disparo se registra como miss y no hace daño. Esto no afecta al jugador (el jugador siempre impacta en la zona elegida).</p>
+        <table class="help-table">
+          <tr><th>Zona</th><th>Default</th><th>Razonamiento</th></tr>
+          <tr><td>Cabeza</td><td>60%</td><td>Zona pequeña, difícil de acertar</td></tr>
+          <tr><td>Torso</td><td>85%</td><td>Zona grande, blanco fácil</td></tr>
+          <tr><td>Brazos</td><td>70%</td><td>Zona media</td></tr>
+          <tr><td>Piernas</td><td>75%</td><td>Zona media-baja</td></tr>
+        </table>
+        <div class="help-callout warn"><p><strong>Para simular QTE del jugador:</strong> La precisión de la IA en la simulación ×100 representa la dificultad media de un jugador real. Con 100% en todas las zonas simulás un jugador perfecto. Con 50% en cabeza y 70% en torso simulás un jugador casual.</p></div>
+      </div>
+
+      <!-- BATCH -->
+      <div class="help-section" id="help-batch">
+        <div class="help-h1">Simulación Masiva ×100</div>
+        <div class="help-subtitle">El modo más poderoso para detectar desbalances</div>
+
+        <div class="help-p">Al presionar <strong>⚡ SIMULAR 100 COMBATES IA vs IA</strong>, el simulador corre 100 combates completos en segundo plano y muestra estadísticas agregadas. Ambos equipos son controlados por la IA con la lógica descrita en la sección anterior.</div>
+
+        <div class="help-h2">Qué se mide</div>
+        <table class="help-table">
+          <tr><th>Métrica</th><th>Descripción</th></tr>
+          <tr><td>Win rate OP / EN</td><td>Porcentaje de los 100 combates ganados por cada equipo.</td></tr>
+          <tr><td>Rondas promedio</td><td>Duración media de los combates. Combates muy cortos o muy largos pueden indicar desbalance.</td></tr>
+          <tr><td>Rondas mín / máx</td><td>El combate más rápido y más lento. Alta varianza sugiere mucha aleatoriedad o casos extremos.</td></tr>
+          <tr><td>DMG promedio</td><td>Daño total promedio por equipo por combate.</td></tr>
+        </table>
+
+        <div class="help-h2">Interpretación de resultados</div>
+        <div class="help-formula">Win rate ~50/50   → Combate balanceado<br>Win rate 60+/40-  → Equipo favorecido, revisar stats<br>Win rate 70+/30-  → Desbalance significativo<br>Win rate 90+/10-  → Desbalance severo, no jugable</div>
+
+        <div class="help-h2">Cómo usar la simulación para balancear</div>
+        <div class="help-p">El flujo recomendado para encontrar balance es iterativo:</div>
+        <div class="help-formula">1. Configurar stats base<br>2. Correr ×100 → ver win rate<br>3. Si desbalanceado → ajustar HP, daño o armadura del equipo favorecido<br>4. Repetir hasta llegar a ~50% ± 10%<br>5. Probar con distintos modos de armadura y tipos de bala</div>
+        <div class="help-callout tip"><p><strong>Tip:</strong> Corré la simulación primero con precisión IA al 100% para ver el balance "perfecto", y luego reducí la precisión para simular un jugador real. La diferencia te muestra cuánto depende el balance de la habilidad del jugador.</p></div>
+
+        <div class="help-h2">Límite de seguridad</div>
+        <div class="help-p">Cada combate tiene un límite de <strong>500 rondas</strong>. Si se supera (por ejemplo, si ambos equipos tienen mucha armadura y poco daño), el combate termina y se registra la derrota del equipo con menos HP restante.</div>
+      </div>
+
+      <!-- CONFIG GUIDE -->
+      <div class="help-section" id="help-config">
+        <div class="help-h1">Guía de Configuración</div>
+        <div class="help-subtitle">Referencia de todos los parámetros editables</div>
+
+        <div class="help-h2">⚙ Configuración Global</div>
+        <table class="help-table">
+          <tr><th>Parámetro</th><th>Efecto</th><th>Recomendación</th></tr>
+          <tr><td>Modo Armadura</td><td>Cambia cómo funciona la armadura en todo el combate. Afecta a todos los personajes por igual.</td><td>Probá ambos modos y compará win rates con la simulación ×100.</td></tr>
+          <tr><td>Penalización bala incorrecta</td><td>Si está activo, las balas especializadas hacen menos daño en zona incorrecta. Si está inactivo, funcionan como balas normales en zona incorrecta.</td><td>Activado para testing realista. Desactivado para ver solo el bonus.</td></tr>
+          <tr><td>Variación de daño %</td><td>Rango aleatorio por encima/debajo del daño calculado. 0% = daño determinístico. 30% = alta varianza.</td><td>15%–20% para combate interesante. 0% para testing de balance puro.</td></tr>
+          <tr><td>Precisión IA por zona</td><td>% de chance de impacto de la IA por zona elegida. No afecta al jugador.</td><td>Usar valores realistas del juego o setear en 100% para aislar el daño.</td></tr>
+        </table>
+
+        <div class="help-h2">🔴 Configuración de Balas</div>
+        <table class="help-table">
+          <tr><th>Parámetro</th><th>Efecto</th></tr>
+          <tr><td>Bonus Penetrante vs Armadura %</td><td>Cuánto % extra de daño hace la bala penetrante cuando impacta un objetivo con armadura.</td></tr>
+          <tr><td>Penalización Penetrante vs Carne %</td><td>Cuánto % menos hace la bala penetrante cuando impacta sin armadura (si Penalización activada).</td></tr>
+          <tr><td>Bonus Fragmentación vs Carne %</td><td>Cuánto % extra de daño hace la bala de fragmentación cuando impacta sin armadura.</td></tr>
+          <tr><td>Penalización Fragmentación vs Armadura %</td><td>Cuánto % menos hace la bala de fragmentación cuando impacta en armadura (si Penalización activada).</td></tr>
+        </table>
+
+        <div class="help-h2">🎯 Multiplicadores por Zona</div>
+        <div class="help-p">Son globales: se aplican igual a todos los personajes y armas. Cambiarlos afecta el ritmo del combate completo. Un multiplicador de cabeza muy alto (×5) hace que el headshot sea determinante; uno bajo (×1.5) hace que la zona casi no importe.</div>
+
+        <div class="help-h2">👤 Personajes</div>
+        <table class="help-table">
+          <tr><th>Parámetro</th><th>Efecto</th></tr>
+          <tr><td>HP</td><td>Vida del personaje. Al llegar a 0 muere. En modo Vida Extra la armadura absorbe primero.</td></tr>
+          <tr><td>Armadura</td><td>En modo Vida Extra: barra extra de vida. En modo % Mitigación: porcentaje de daño reducido (ej: 30 = 30% menos daño).</td></tr>
+          <tr><td>Placas</td><td>Número de Placas de Armadura disponibles. Se muestran en stats pero aún no tienen mecánica de uso en combate.</td></tr>
+          <tr><td>Iniciativa</td><td>Determina el orden de turno. Mayor iniciativa = actúa antes. Rango sugerido: 1–20.</td></tr>
+        </table>
+
+        <div class="help-callout tip"><p><strong>Para empezar:</strong> Los valores por defecto (HP 100, Armadura 50, Iniciativa 10) son un punto de partida razonable. Ajustá solo las variables que querés testear para aislar mejor los resultados.</p></div>
+      </div>
+
+    </div><!-- end help-content -->
+  </div><!-- end help-grid -->
+</div>
+
+</div><!-- end .app -->
+
+<script>
+// ===================== STATE =====================
+const WEAPON_TYPES = {
+  pistol:  { name:'Pistola',          ammoType:'pistol',  baseDmg:25, capacity:15, reserve:60,  burstCount:1, reloadTurns:1 },
+  shotgun: { name:'Escopeta',         ammoType:'shotgun', baseDmg:60, capacity:6,  reserve:24,  burstCount:1, reloadTurns:2 },
+  smg:     { name:'Subfusil',         ammoType:'smg',     baseDmg:20, capacity:30, reserve:90,  burstCount:3, reloadTurns:1 },
+  assault: { name:'Fusil de Asalto',  ammoType:'rifle',   baseDmg:35, capacity:30, reserve:90,  burstCount:2, reloadTurns:2 },
+  sniper:  { name:'Francotirador',    ammoType:'rifle',   baseDmg:80, capacity:5,  reserve:20,  burstCount:1, reloadTurns:3 },
+  lmg:     { name:'Ametralladora',    ammoType:'rifle',   baseDmg:28, capacity:60, reserve:180, burstCount:5, reloadTurns:3 },
+};
+
+let gameConfig = {
+  armorMode:'hp', penaltyEnabled:true, dmgVariance:15,
+  penBonus:30, penPenalty:20, fragBonus:30, fragPenalty:20,
+  multHead:2.5, multTorso:1.0, multArms:0.6, multLegs:0.7,
+  aiAccHead:60, aiAccTorso:85, aiAccArms:70, aiAccLegs:75,
+  operators:[], enemies:[]
+};
+
+let combatState = null;
+let selectedZone = 'torso';
+let combatStats = null;
+let batchStats = null;
+let opIdCounter = 0;
+let enIdCounter = 0;
+
+// ===================== UI =====================
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function showHelp(section, btn) {
+  document.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.help-nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('help-' + section).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function setArmorMode(mode) {
+  gameConfig.armorMode = mode;
+  document.getElementById('armor-mode-hp').classList.toggle('active', mode==='hp');
+  document.getElementById('armor-mode-pct').classList.toggle('active', mode==='pct');
+}
+
+// ===================== WEAPON CONFIG =====================
+function buildWeaponConfig(wData, prefix, isFixed=false) {
+  const typeOpts = isFixed
+    ? `<option value="pistol" selected>Pistola</option>`
+    : Object.entries(WEAPON_TYPES).filter(([k])=>k!=='pistol')
+        .map(([k,v])=>`<option value="${k}" ${wData.type===k?'selected':''}>${v.name}</option>`).join('');
+
+  const ammoType = wData.ammoPenetrating ? 'pen' : wData.ammoFragmentation ? 'frag' : 'normal';
+
+  return `
+    <div class="weapon-group">
+      <div class="weapon-group-title">${isFixed ? '🔫 Pistola (fija)' : '⚡ Arma Especial'}</div>
+      ${!isFixed ? `<div class="card-field"><label>Tipo</label>
+        <select id="${prefix}-type" onchange="onWeaponTypeChange('${prefix}')">${typeOpts}</select></div>` : ''}
+      <div class="mini-grid">
+        <div class="card-field"><label>Daño Base</label><input type="number" id="${prefix}-dmg" value="${wData.baseDmg}" min="1" max="9999"></div>
+        <div class="card-field"><label>Cargador</label><input type="number" id="${prefix}-cap" value="${wData.capacity}" min="1" max="999"></div>
+        <div class="card-field"><label>Reserva</label><input type="number" id="${prefix}-res" value="${wData.reserve}" min="0" max="9999"></div>
+        <div class="card-field"><label>Ráfaga</label><input type="number" id="${prefix}-burst" value="${wData.burstCount}" min="1" max="20"></div>
+        <div class="card-field"><label>Recarga(turn)</label><input type="number" id="${prefix}-reload" value="${wData.reloadTurns}" min="1" max="5"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-top:8px;margin-bottom:4px;">Tipo de Munición</div>
+      <div class="ammo-type-group">
+        <button class="ammo-radio-btn ${ammoType==='normal'?'active-normal':''}" id="${prefix}-ammo-normal" onclick="setAmmoType('${prefix}','normal')">⬜ Normal</button>
+        <button class="ammo-radio-btn ${ammoType==='pen'?'active-pen':''}" id="${prefix}-ammo-pen" onclick="setAmmoType('${prefix}','pen')">🔵 Penetrante</button>
+        <button class="ammo-radio-btn ${ammoType==='frag'?'active-frag':''}" id="${prefix}-ammo-frag" onclick="setAmmoType('${prefix}','frag')">🔴 Fragmentación</button>
+      </div>
+      <input type="hidden" id="${prefix}-ammo-type" value="${ammoType}">
+    </div>`;
+}
+
+function setAmmoType(prefix, type) {
+  document.getElementById(`${prefix}-ammo-normal`).className = `ammo-radio-btn ${type==='normal'?'active-normal':''}`;
+  document.getElementById(`${prefix}-ammo-pen`).className = `ammo-radio-btn ${type==='pen'?'active-pen':''}`;
+  document.getElementById(`${prefix}-ammo-frag`).className = `ammo-radio-btn ${type==='frag'?'active-frag':''}`;
+  document.getElementById(`${prefix}-ammo-type`).value = type;
+}
+
+function onWeaponTypeChange(prefix) {
+  const sel = document.getElementById(`${prefix}-type`);
+  if (!sel) return;
+  const wt = WEAPON_TYPES[sel.value];
+  if (!wt) return;
+  document.getElementById(`${prefix}-dmg`).value = wt.baseDmg;
+  document.getElementById(`${prefix}-cap`).value = wt.capacity;
+  document.getElementById(`${prefix}-res`).value = wt.reserve;
+  document.getElementById(`${prefix}-burst`).value = wt.burstCount;
+  document.getElementById(`${prefix}-reload`).value = wt.reloadTurns;
+}
+
+// ===================== ADD/REMOVE ENTITIES =====================
+function addOperator() {
+  const id = ++opIdCounter;
+  gameConfig.operators.push({
+    id, name:`OP-${id}`, hp:100, armor:50, plates:2, initiative:10,
+    pistol: { ...WEAPON_TYPES.pistol, type:'pistol', ammoPenetrating:false, ammoFragmentation:false },
+    special:{ ...WEAPON_TYPES.assault, type:'assault', ammoPenetrating:false, ammoFragmentation:false }
+  });
+  renderOperators();
+}
+
+function addEnemy() {
+  const id = ++enIdCounter;
+  gameConfig.enemies.push({
+    id, name:`ENEMY-${id}`, hp:80, armor:30, plates:1, initiative:8,
+    pistol: { ...WEAPON_TYPES.pistol, type:'pistol', ammoPenetrating:false, ammoFragmentation:false },
+    special:{ ...WEAPON_TYPES.smg, type:'smg', ammoPenetrating:false, ammoFragmentation:false }
+  });
+  renderEnemies();
+}
+
+function removeOperator(id) {
+  gameConfig.operators = gameConfig.operators.filter(o=>o.id!==id);
+  renderOperators();
+}
+function removeEnemy(id) {
+  gameConfig.enemies = gameConfig.enemies.filter(e=>e.id!==id);
+  renderEnemies();
+}
+
+function renderOperators() {
+  document.getElementById('operators-container').innerHTML =
+    gameConfig.operators.map(op => renderEntityCard(op,'op')).join('');
+}
+function renderEnemies() {
+  document.getElementById('enemies-container').innerHTML =
+    gameConfig.enemies.map(en => renderEntityCard(en,'en')).join('');
+}
+
+function renderEntityCard(ent, team) {
+  const isOp = team === 'op';
+  const prefix = `${team}-${ent.id}`;
+  return `
+    <div class="entity-card ${isOp?'operator':'enemy'}">
+      <div class="entity-card-title">
+        <span class="tag tag-${team}">${isOp?'OP':'EN'}</span>
+        <input type="text" value="${ent.name}" style="background:transparent;border:none;color:${isOp?'var(--green)':'var(--red)'};font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;width:120px;" oninput="${isOp?'updateOpName':'updateEnName'}(${ent.id},this.value)">
+        <button class="remove-btn" onclick="${isOp?'removeOperator':'removeEnemy'}(${ent.id})">✕</button>
+      </div>
+      <div class="mini-grid">
+        <div class="card-field"><label>HP</label><input type="number" id="${prefix}-hp" value="${ent.hp}" min="1" max="9999"></div>
+        <div class="card-field"><label>Armadura</label><input type="number" id="${prefix}-armor" value="${ent.armor}" min="0" max="9999"></div>
+        <div class="card-field"><label>Placas</label><input type="number" id="${prefix}-plates" value="${ent.plates}" min="0" max="20"></div>
+        <div class="card-field"><label>Iniciativa</label><input type="number" id="${prefix}-init" value="${ent.initiative}" min="1" max="99"></div>
+      </div>
+      ${buildWeaponConfig(ent.pistol, `${prefix}-pistol`, true)}
+      ${buildWeaponConfig(ent.special, `${prefix}-special`, false)}
+    </div>`;
+}
+
+function updateOpName(id,v){ const e=gameConfig.operators.find(o=>o.id===id); if(e) e.name=v; }
+function updateEnName(id,v){ const e=gameConfig.enemies.find(o=>o.id===id); if(e) e.name=v; }
+
+// ===================== READ CONFIG =====================
+function readConfig() {
+  gameConfig.armorMode = document.getElementById('armor-mode-hp').classList.contains('active') ? 'hp' : 'pct';
+  gameConfig.penaltyEnabled = document.getElementById('penalty-enabled').checked;
+  gameConfig.dmgVariance = +document.getElementById('dmg-variance').value;
+  gameConfig.penBonus = +document.getElementById('pen-bonus').value;
+  gameConfig.penPenalty = +document.getElementById('pen-penalty').value;
+  gameConfig.fragBonus = +document.getElementById('frag-bonus').value;
+  gameConfig.fragPenalty = +document.getElementById('frag-penalty').value;
+  gameConfig.multHead = +document.getElementById('mult-head').value;
+  gameConfig.multTorso = +document.getElementById('mult-torso').value;
+  gameConfig.multArms = +document.getElementById('mult-arms').value;
+  gameConfig.multLegs = +document.getElementById('mult-legs').value;
+  gameConfig.aiAccHead = +document.getElementById('ai-acc-head').value;
+  gameConfig.aiAccTorso = +document.getElementById('ai-acc-torso').value;
+  gameConfig.aiAccArms = +document.getElementById('ai-acc-arms').value;
+  gameConfig.aiAccLegs = +document.getElementById('ai-acc-legs').value;
+
+  gameConfig.operators.forEach(op => readEntity(op, `op-${op.id}`));
+  gameConfig.enemies.forEach(en => readEntity(en, `en-${en.id}`));
+}
+
+function readEntity(ent, prefix) {
+  ent.hp = +document.getElementById(`${prefix}-hp`).value;
+  ent.armor = +document.getElementById(`${prefix}-armor`).value;
+  ent.plates = +document.getElementById(`${prefix}-plates`).value;
+  ent.initiative = +document.getElementById(`${prefix}-init`).value;
+  readWeapon(ent.pistol, `${prefix}-pistol`, true);
+  readWeapon(ent.special, `${prefix}-special`, false);
+}
+
+function readWeapon(w, prefix, isFixed) {
+  if (!isFixed) {
+    const typeEl = document.getElementById(`${prefix}-type`);
+    if (typeEl) {
+      w.type = typeEl.value;
+      w.name = WEAPON_TYPES[w.type]?.name || w.type;
+      w.ammoType = WEAPON_TYPES[w.type]?.ammoType || 'pistol';
+    }
+  }
+  const safeGet = (id) => { const el = document.getElementById(id); return el ? +el.value : 0; };
+  w.baseDmg = safeGet(`${prefix}-dmg`);
+  w.capacity = safeGet(`${prefix}-cap`);
+  w.reserve = safeGet(`${prefix}-res`);
+  w.burstCount = safeGet(`${prefix}-burst`);
+  w.reloadTurns = safeGet(`${prefix}-reload`);
+  const ammoTypeEl = document.getElementById(`${prefix}-ammo-type`);
+  const ammoType = ammoTypeEl ? ammoTypeEl.value : 'normal';
+  w.ammoPenetrating = ammoType === 'pen';
+  w.ammoFragmentation = ammoType === 'frag';
+}
+
+function resetConfig() {
+  gameConfig.operators = []; gameConfig.enemies = [];
+  opIdCounter = 0; enIdCounter = 0;
+  renderOperators(); renderEnemies();
+}
+
+// ===================== BUILD COMBAT STATE =====================
+function buildCombatant(cfg, team) {
+  return {
+    id: cfg.id, name: cfg.name, team,
+    initiative: cfg.initiative,
+    hp: cfg.hp, maxHp: cfg.hp,
+    armor: cfg.armor, maxArmor: cfg.armor,
+    plates: cfg.plates, maxPlates: cfg.plates,
+    weapons: [buildWeaponState(cfg.pistol), buildWeaponState(cfg.special)],
+    activeWeapon: 1,
+    dead: false, reloadingTurns: 0, specialUsed: false,
+    stats: { shots:0, hits:0, misses:0, dmgDealt:0, kills:0 }
+  };
+}
+
+function buildWeaponState(wCfg) {
+  return {
+    name: wCfg.name || WEAPON_TYPES[wCfg.type]?.name || 'Arma',
+    type: wCfg.type,
+    ammoType: wCfg.ammoType || 'pistol',
+    baseDmg: wCfg.baseDmg,
+    currentAmmo: wCfg.capacity,
+    capacity: wCfg.capacity,
+    reserve: wCfg.reserve,
+    burstCount: wCfg.burstCount,
+    reloadTurns: wCfg.reloadTurns,
+    ammoPenetrating: wCfg.ammoPenetrating,
+    ammoFragmentation: wCfg.ammoFragmentation,
+  };
+}
+
+function freshCombatStats() {
+  return {
+    rounds:0, winner:null,
+    totalDamage:{operators:0,enemies:0},
+    kills:{operators:0,enemies:0},
+    shots:{operators:0,enemies:0},
+    hits:{operators:0,enemies:0},
+    misses:{operators:0,enemies:0},
+    dmgByZone:{head:0,torso:0,arms:0,legs:0},
+    dmgByAmmo:{normal:0,penetrating:0,fragmentation:0},
+    armorDmg:0, hpDmg:0,
+  };
+}
+
+// ===================== START COMBAT =====================
+function startCombat() {
+  readConfig();
+  if (!validate()) return;
+
+  const ops = gameConfig.operators.map(o => buildCombatant(o,'operator'));
+  const ens = gameConfig.enemies.map(e => buildCombatant(e,'enemy'));
+  const all = [...ops,...ens].sort((a,b)=>b.initiative-a.initiative||(a.team==='operator'?-1:1));
+
+  combatState = { round:1, turnIndex:0, turnOrder:all, operators:ops, enemies:ens, finished:false };
+  combatStats = freshCombatStats();
+  batchStats = null;
+
+  // Reset combat UI
+  document.getElementById('combat-log').innerHTML = '';
+  restoreActionGrid();
+
+  renderCombatUI();
+  showPage('combat', document.getElementById('tab-combat'));
+
+  addLog('system', `━━━ COMBATE INICIADO — Armadura: ${gameConfig.armorMode==='hp'?'VIDA EXTRA':'% MITIGACIÓN'} ━━━`);
+  addLog('turn', `RONDA 1`);
+  startCurrentTurn();
+}
+
+function validate() {
+  if (gameConfig.operators.length===0||gameConfig.enemies.length===0) {
+    document.getElementById('config-status').textContent = '⚠ Necesitás al menos 1 operador y 1 enemigo.';
+    return false;
+  }
+  document.getElementById('config-status').textContent = '';
+  return true;
+}
+
+// ===================== COMBAT RENDERING =====================
+function renderCombatUI() {
+  if (!combatState) return;
+  renderTeamPanel('combat-operators', combatState.operators, 'operator');
+  renderTeamPanel('combat-enemies', combatState.enemies, 'enemy');
+  renderTurnOrder();
+}
+
+function renderTeamPanel(panelId, chars, team) {
+  const panel = document.getElementById(panelId);
+  const label = panel.querySelector('.team-label').outerHTML;
+  panel.innerHTML = label;
+  chars.forEach(c => {
+    const isActive = combatState && !combatState.finished &&
+      combatState.turnOrder[combatState.turnIndex]?.id === c.id &&
+      combatState.turnOrder[combatState.turnIndex]?.team === c.team;
+    const hpPct = Math.max(0, (c.hp/c.maxHp)*100);
+    const hpCol = hpPct>50?'var(--green)':hpPct>25?'var(--accent)':'var(--red)';
+    const w = c.weapons[c.activeWeapon];
+    const ammoClass = w.ammoPenetrating?'ammo-penetrating':w.ammoFragmentation?'ammo-fragmentation':'ammo-normal';
+    const ammoLabel = w.ammoPenetrating?'PEN':w.ammoFragmentation?'FRAG':'STD';
+
+    let armorHtml = '';
+    if (gameConfig.armorMode==='hp'&&c.maxArmor>0) {
+      const aPct = Math.max(0,(c.armor/c.maxArmor)*100);
+      armorHtml = `<div class="stat-bar-container">
+        <div class="stat-bar-label"><span>ARMOR</span><span>${Math.round(c.armor)}/${c.maxArmor}</span></div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${aPct}%;background:var(--blue)"></div></div>
+      </div>`;
+    } else if (gameConfig.armorMode==='pct'&&c.maxArmor>0) {
+      armorHtml = `<div class="stat-bar-label"><span>CHALECO ${c.armor}% mit.</span><span>${c.plates}/${c.maxPlates} placas</span></div>`;
+    }
+
+    const reloadStr = c.reloadingTurns>0?`<span style="color:var(--blue2)"> [RECARGANDO ${c.reloadingTurns}t]</span>`:'';
+    const div = document.createElement('div');
+    div.className = `char-card ${team}-card ${c.dead?'dead':''} ${isActive?'active-turn':''}`;
+    div.innerHTML = `
+      <div class="char-name">
+        <div class="turn-indicator"></div>
+        ${c.name}
+        <div class="init-badge">${c.initiative}</div>
+      </div>
+      <div class="stat-bar-container">
+        <div class="stat-bar-label"><span>HP</span><span>${Math.round(c.hp)}/${c.maxHp}</span></div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${hpPct}%;background:${hpCol}"></div></div>
+      </div>
+      ${armorHtml}
+      <div class="char-weapon-info">
+        <div class="ammo-display">${c.activeWeapon===0?'🔫':'⚡'} ${w.name} <span class="ammo-badge ${ammoClass}">${ammoLabel}</span>${reloadStr}</div>
+        <div style="margin-top:3px;">${w.currentAmmo}/${w.capacity} <span style="color:var(--text3)">+${w.reserve}</span></div>
+        ${c.plates>0?`<div style="font-size:10px;color:var(--text3);margin-top:2px;">Placas: <span style="color:var(--blue2)">${c.plates}/${c.maxPlates}</span></div>`:''}
+      </div>`;
+    panel.appendChild(div);
+  });
+}
+
+function renderTurnOrder() {
+  const strip = document.getElementById('turn-order-strip');
+  strip.innerHTML = '<span style="color:var(--text3);font-size:10px;letter-spacing:2px;flex-shrink:0;">TURNO:</span>';
+  combatState.turnOrder.forEach((c,i) => {
+    const pip = document.createElement('div');
+    pip.className = `turn-pip ${c.team==='operator'?'op':'en'} ${i===combatState.turnIndex?'current':''} ${c.dead?'dead':''}`;
+    pip.textContent = c.name;
+    strip.appendChild(pip);
+  });
+}
+
+// ===================== LOG =====================
+function addLog(type, text) {
+  const log = document.getElementById('combat-log');
+  if (!log) return;
+  const e = document.createElement('div');
+  e.className = `log-entry log-${type}`;
+  e.innerHTML = text;
+  log.appendChild(e);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ===================== TURN MANAGEMENT =====================
+function startCurrentTurn() {
+  if (!combatState || combatState.finished) return;
+  const char = combatState.turnOrder[combatState.turnIndex];
+  if (!char || char.dead) { nextTurn(); return; }
+
+  if (char.reloadingTurns > 0) {
+    char.reloadingTurns--;
+    if (char.reloadingTurns === 0) {
+      const w = char.weapons[char.activeWeapon];
+      const needed = w.capacity - w.currentAmmo;
+      const from = Math.min(needed, w.reserve);
+      w.currentAmmo += from; w.reserve -= from;
+      addLog('reload', `${char.name} terminó de recargar → ${w.currentAmmo}/${w.capacity}`);
+    } else {
+      addLog('reload', `${char.name} recargando... (${char.reloadingTurns}t restante)`);
+      renderCombatUI();
+      nextTurn(); return;
+    }
+  }
+
+  renderCombatUI();
+  if (char.team === 'operator') {
+    enablePlayerActions(char);
+  } else {
+    disablePlayerActions('IA...');
+    setTimeout(() => aiTakeTurn(char), 600);
+  }
+}
+
+function nextTurn() {
+  if (!combatState || combatState.finished) return;
+  let next = (combatState.turnIndex + 1) % combatState.turnOrder.length;
+  let loops = 0;
+  while (combatState.turnOrder[next]?.dead) {
+    next = (next + 1) % combatState.turnOrder.length;
+    if (++loops > combatState.turnOrder.length + 1) return;
+  }
+  if (next <= combatState.turnIndex) {
+    combatState.round++;
+    combatStats.rounds = combatState.round;
+    addLog('turn', `━━━ RONDA ${combatState.round} ━━━`);
+  }
+  combatState.turnIndex = next;
+  renderTurnOrder();
+  startCurrentTurn();
+}
+
+// ===================== PLAYER ACTIONS =====================
+function restoreActionGrid() {
+  document.getElementById('action-grid').innerHTML = `
+    <button class="action-btn action-fire" id="btn-fire" onclick="doAction('fire')" disabled>🔫 DISPARAR</button>
+    <button class="action-btn action-reload" id="btn-reload" onclick="doAction('reload')" disabled>↻ RECARGAR</button>
+    <button class="action-btn action-switch" id="btn-switch" onclick="doAction('switch')" disabled>⇄ CAMBIAR ARMA</button>
+    <button class="action-btn action-special" id="btn-special" onclick="doAction('special')" disabled>★ ESPECIAL</button>`;
+}
+
+function enablePlayerActions(char) {
+  restoreActionGrid();
+  const w = char.weapons[char.activeWeapon];
+  document.getElementById('action-title').textContent = `TURNO DE: ${char.name}`;
+  document.getElementById('action-panel').style.borderTopColor = 'var(--green)';
+  document.getElementById('targeting-row').style.display = 'none';
+
+  document.getElementById('btn-fire').disabled = w.currentAmmo <= 0 || char.reloadingTurns > 0;
+  document.getElementById('btn-reload').disabled = w.reserve <= 0 || w.currentAmmo >= w.capacity || char.reloadingTurns > 0;
+  document.getElementById('btn-switch').disabled = char.reloadingTurns > 0;
+  document.getElementById('btn-special').disabled = char.specialUsed;
+  if (char.specialUsed) document.getElementById('btn-special').textContent = '★ ESPECIAL (USADO)';
+}
+
+function disablePlayerActions(title='TURNO DE LA IA...') {
+  const grid = document.getElementById('action-grid');
+  if (grid) {
+    grid.querySelectorAll('button').forEach(b => b.disabled = true);
+  }
+  const titleEl = document.getElementById('action-title');
+  if (titleEl) titleEl.textContent = title;
+  const panel = document.getElementById('action-panel');
+  if (panel) panel.style.borderTopColor = 'var(--red)';
+  const row = document.getElementById('targeting-row');
+  if (row) row.style.display = 'none';
+}
+
+function doAction(action) {
+  if (!combatState || combatState.finished) return;
+  const char = combatState.turnOrder[combatState.turnIndex];
+  if (!char || char.team !== 'operator') return;
+
+  if (action === 'fire') {
+    const enemies = combatState.enemies.filter(e=>!e.dead);
+    if (enemies.length === 0) return;
+    document.getElementById('targeting-row').style.display = 'flex';
+    document.getElementById('target-select').innerHTML = enemies.map(e=>`<option value="${e.id}">${e.name} (HP:${Math.round(e.hp)})</option>`).join('');
+    selectedZone = 'torso';
+    document.querySelectorAll('.zone-btn').forEach(b=>b.classList.remove('selected'));
+    document.querySelector('.zone-torso').classList.add('selected');
+    document.getElementById('action-grid').querySelectorAll('button').forEach(b=>b.disabled=true);
+    return;
+  }
+
+  if (action === 'reload') {
+    const w = char.weapons[char.activeWeapon];
+    char.reloadingTurns = w.reloadTurns;
+    addLog('reload', `${char.name} inicia recarga de ${w.name} (${w.reloadTurns} turno${w.reloadTurns>1?'s':''})`);
+    document.getElementById('targeting-row').style.display = 'none';
+    nextTurn(); return;
+  }
+
+  if (action === 'switch') {
+    char.activeWeapon = 1 - char.activeWeapon;
+    const w = char.weapons[char.activeWeapon];
+    addLog('system', `${char.name} cambia a ${w.name}`);
+    renderCombatUI();
+    enablePlayerActions(char); return;
+  }
+
+  if (action === 'special') {
+    char.specialUsed = true;
+    const heal = Math.round(char.maxHp * 0.2);
+    char.hp = Math.min(char.maxHp, char.hp + heal);
+    addLog('special', `${char.name} usa ESPECIAL → recupera ${heal} HP (${Math.round(char.hp)}/${char.maxHp})`);
+    renderCombatUI();
+    nextTurn(); return;
+  }
+}
+
+function selectZone(zone) {
+  selectedZone = zone;
+  document.querySelectorAll('.zone-btn').forEach(b=>b.classList.remove('selected'));
+  document.querySelector(`.zone-${zone}`).classList.add('selected');
+}
+
+function cancelFire() {
+  document.getElementById('targeting-row').style.display = 'none';
+  const char = combatState?.turnOrder[combatState.turnIndex];
+  if (char) enablePlayerActions(char);
+}
+
+function confirmFire() {
+  if (!combatState || combatState.finished) return;
+  const char = combatState.turnOrder[combatState.turnIndex];
+  const targetId = +document.getElementById('target-select').value;
+  const target = combatState.enemies.find(e=>e.id===targetId&&!e.dead);
+  if (!target) return;
+  document.getElementById('targeting-row').style.display = 'none';
+  executeAttack(char, target, selectedZone, true);
+  if (!checkVictory()) nextTurn();
+}
+
+// ===================== ATTACK CORE =====================
+function getAccuracy(zone) {
+  const accMap = { head:gameConfig.aiAccHead, torso:gameConfig.aiAccTorso, arms:gameConfig.aiAccArms, legs:gameConfig.aiAccLegs };
+  return accMap[zone] ?? 85;
+}
+
+function executeAttack(attacker, target, zone, isPlayer=false) {
+  const w = attacker.weapons[attacker.activeWeapon];
+  const shots = Math.min(w.burstCount, w.currentAmmo);
+  if (shots === 0) { addLog('system', `${attacker.name} sin munición!`); return; }
+
+  const team = attacker.team==='operator'?'operators':'enemies';
+  combatStats.shots[team] += shots;
+  attacker.stats.shots += shots;
+
+  for (let i=0; i<shots; i++) {
+    if (w.currentAmmo<=0||target.dead) break;
+    w.currentAmmo--;
+
+    // Accuracy check (always hits for player, uses % for AI)
+    const acc = isPlayer ? 100 : getAccuracy(zone);
+    const hit = Math.random()*100 < acc;
+
+    if (!hit) {
+      attacker.stats.misses++;
+      combatStats.misses[team]++;
+      addLog('miss', `${attacker.name} → ${target.name} [${zoneLabel(zone)}] FALLO`);
+      continue;
+    }
+
+    attacker.stats.hits++;
+    combatStats.hits[team]++;
+
+    const dmg = calculateDamage(w, zone, target);
+    const rawDmg = dmg.total;
+    applyDamage(target, rawDmg, dmg.isArmorHit);
+    attacker.stats.dmgDealt += rawDmg;
+    combatStats.totalDamage[team] += rawDmg;
+    combatStats.dmgByZone[zone] += rawDmg;
+    const ammoKey = w.ammoPenetrating?'penetrating':w.ammoFragmentation?'fragmentation':'normal';
+    combatStats.dmgByAmmo[ammoKey] += rawDmg;
+
+    const zClass = zone==='head'?'log-hit-head':zone==='torso'?'log-hit-torso':'log-hit-limb';
+    addLog('attack', `<span class="${zClass}">${attacker.name} → ${target.name} [${zoneLabel(zone)}] ${dmg.logStr} = <strong>${Math.round(rawDmg)} DMG</strong></span>`);
+
+    if (target.dead) {
+      addLog('death', `☠ ${target.name} ELIMINADO`);
+      attacker.stats.kills++;
+      combatStats.kills[team]++;
+      break;
+    }
+  }
+  renderCombatUI();
+}
+
+function zoneLabel(z) {
+  return {head:'🎯 CABEZA',torso:'💥 TORSO',arms:'💢 BRAZOS',legs:'🦵 PIERNAS'}[z]||z;
+}
+
+function calculateDamage(weapon, zone, target) {
+  const mults = { head:gameConfig.multHead, torso:gameConfig.multTorso, arms:gameConfig.multArms, legs:gameConfig.multLegs };
+  const mult = mults[zone];
+  const variance = gameConfig.dmgVariance/100;
+  const roll = 1 - variance + Math.random()*variance*2;
+  let base = weapon.baseDmg * mult * roll;
+  let logStr = `${weapon.baseDmg}×${mult}`;
+
+  const hasArmor = gameConfig.armorMode==='hp' ? target.armor>0 : target.armor>0;
+
+  if (weapon.ammoPenetrating) {
+    if (hasArmor) {
+      base *= (1 + gameConfig.penBonus/100);
+      logStr += ` ×PEN+${gameConfig.penBonus}%`;
+    } else if (gameConfig.penaltyEnabled) {
+      base *= (1 - gameConfig.penPenalty/100);
+      logStr += ` ×PEN-${gameConfig.penPenalty}%`;
+    }
+  } else if (weapon.ammoFragmentation) {
+    if (!hasArmor) {
+      base *= (1 + gameConfig.fragBonus/100);
+      logStr += ` ×FRAG+${gameConfig.fragBonus}%`;
+    } else if (gameConfig.penaltyEnabled) {
+      base *= (1 - gameConfig.fragPenalty/100);
+      logStr += ` ×FRAG-${gameConfig.fragPenalty}%`;
+    }
+  }
+
+  return { total: Math.max(1, base), isArmorHit: hasArmor, logStr };
+}
+
+function applyDamage(target, damage, isArmorHit) {
+  if (gameConfig.armorMode === 'hp') {
+    if (target.armor > 0 && isArmorHit) {
+      const absorb = Math.min(target.armor, damage);
+      target.armor -= absorb;
+      const overflow = damage - absorb;
+      combatStats.armorDmg += absorb;
+      if (overflow > 0) {
+        target.hp -= overflow;
+        combatStats.hpDmg += overflow;
+        addLog('armor', `  ↳ Armadura absorbió ${Math.round(absorb)}, overflow ${Math.round(overflow)} a HP`);
+      } else {
+        addLog('armor', `  ↳ Armadura absorbió ${Math.round(absorb)} (queda: ${Math.round(target.armor)})`);
+      }
+    } else {
+      target.hp -= damage;
+      combatStats.hpDmg += damage;
+    }
+  } else {
+    if (target.armor > 0) {
+      const mitigated = damage * (target.armor/100);
+      const final = damage - mitigated;
+      combatStats.armorDmg += mitigated;
+      combatStats.hpDmg += final;
+      target.hp -= final;
+      addLog('armor', `  ↳ Chaleco ${target.armor}% mitiga ${Math.round(mitigated)} → ${Math.round(final)} a HP`);
+    } else {
+      target.hp -= damage;
+      combatStats.hpDmg += damage;
+    }
+  }
+  if (target.hp <= 0) { target.hp = 0; target.dead = true; }
+}
+
+// ===================== AI LOGIC =====================
+function aiTakeTurn(char) {
+  if (!combatState||combatState.finished||char.dead) { nextTurn(); return; }
+  const w = char.weapons[char.activeWeapon];
+  const opponents = (char.team==='enemy' ? combatState.operators : combatState.enemies).filter(o=>!o.dead);
+  if (opponents.length===0) { checkVictory(); return; }
+
+  // No ammo handling
+  if (w.currentAmmo === 0) {
+    if (w.reserve > 0) {
+      char.reloadingTurns = w.reloadTurns;
+      addLog('reload', `${char.name} [IA] recarga ${w.name}`);
+      renderCombatUI(); nextTurn(); return;
+    }
+    const other = char.weapons[1-char.activeWeapon];
+    if (other.currentAmmo>0||other.reserve>0) {
+      char.activeWeapon = 1-char.activeWeapon;
+      addLog('system', `${char.name} [IA] cambia a ${other.name}`);
+    } else {
+      addLog('system', `${char.name} [IA] sin munición`);
+      nextTurn(); return;
+    }
+  }
+
+  const target = [...opponents].sort((a,b)=>a.hp-b.hp)[0];
+  const rnd = Math.random();
+  let zone;
+  if (target.armor>0&&gameConfig.armorMode==='hp') {
+    zone = rnd<0.6?'torso':rnd<0.8?'head':rnd<0.9?'arms':'legs';
+  } else {
+    zone = rnd<0.3?'head':rnd<0.75?'torso':rnd<0.88?'arms':'legs';
+  }
+
+  addLog('attack', `${char.name} [IA] apunta a ${target.name}`);
+  executeAttack(char, target, zone, false);
+  if (!checkVictory()) nextTurn();
+}
+
+// ===================== VICTORY =====================
+function checkVictory() {
+  const opsAlive = combatState.operators.filter(o=>!o.dead).length;
+  const ensAlive = combatState.enemies.filter(e=>!e.dead).length;
+  if (opsAlive===0) { combatStats.winner='enemies'; addLog('victory',`🔴 DERROTA — Ronda ${combatState.round}`); endCombat(); return true; }
+  if (ensAlive===0) { combatStats.winner='operators'; addLog('victory',`🟢 VICTORIA — Ronda ${combatState.round}`); endCombat(); return true; }
+  return false;
+}
+
+function endCombat() {
+  combatState.finished = true;
+  combatStats.rounds = combatState.round;
+  disablePlayerActions('COMBATE FINALIZADO');
+  document.getElementById('action-panel').style.borderTopColor = 'var(--accent)';
+  renderCombatUI();
+  generateStats();
+  document.getElementById('action-grid').innerHTML = `
+    <button class="action-btn" onclick="showPage('config',document.getElementById('tab-config'))" style="grid-column:1/3;border-left:3px solid var(--accent);">⚙ RECONFIGURAR</button>
+    <button class="action-btn" onclick="showPage('stats',document.getElementById('tab-stats'))" style="grid-column:3/5;border-left:3px solid var(--blue);">📊 VER STATS</button>`;
+}
+
+// ===================== BATCH SIMULATION =====================
+async function startBatchSim() {
+  readConfig();
+  if (!validate()) return;
+
+  const N = 100;
+  const overlay = document.createElement('div');
+  overlay.className = 'progress-overlay';
+  overlay.innerHTML = `
+    <div class="progress-box">
+      <div class="progress-title">⚡ SIMULANDO ${N} COMBATES</div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="progress-text" id="prog-text">0 / ${N} combates...</div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  await new Promise(r=>setTimeout(r,50));
+
+  const results = { opWins:0, enWins:0, rounds:[], dmgOps:[], dmgEns:[], kills:[] };
+
+  for (let i=0; i<N; i++) {
+    const r = simulateSingleBatch();
+    if (r.winner==='operators') results.opWins++;
+    else results.enWins++;
+    results.rounds.push(r.rounds);
+    results.dmgOps.push(r.dmgOps);
+    results.dmgEns.push(r.dmgEns);
+
+    if (i%10===0) {
+      document.getElementById('prog-fill').style.width = `${(i/N)*100}%`;
+      document.getElementById('prog-text').textContent = `${i} / ${N} combates...`;
+      await new Promise(r=>setTimeout(r,0));
+    }
+  }
+
+  document.body.removeChild(overlay);
+  batchStats = results;
+  generateBatchStats(results, N);
+  showPage('stats', document.getElementById('tab-stats'));
+}
+
+function simulateSingleBatch() {
+  const ops = gameConfig.operators.map(o => buildCombatant(o,'operator'));
+  const ens = gameConfig.enemies.map(e => buildCombatant(e,'enemy'));
+  const all = [...ops,...ens].sort((a,b)=>b.initiative-a.initiative);
+
+  let round=1, turnIdx=0, maxRounds=500;
+  const GUARD = maxRounds * all.length;
+  let steps = 0;
+
+  while (steps++ < GUARD) {
+    const char = all[turnIdx];
+    if (!char.dead) {
+      const opponents = (char.team==='enemy'?ops:ens).filter(o=>!o.dead);
+      if (opponents.length===0) break;
+
+      const w = char.weapons[char.activeWeapon];
+
+      if (char.reloadingTurns>0) {
+        char.reloadingTurns--;
+        if (char.reloadingTurns===0) {
+          const needed=w.capacity-w.currentAmmo;
+          const from=Math.min(needed,w.reserve);
+          w.currentAmmo+=from; w.reserve-=from;
+        }
+      } else if (w.currentAmmo===0) {
+        if (w.reserve>0) { char.reloadingTurns=w.reloadTurns; }
+        else {
+          const other=char.weapons[1-char.activeWeapon];
+          if (other.currentAmmo>0||other.reserve>0) char.activeWeapon=1-char.activeWeapon;
+        }
+      } else {
+        const target = [...opponents].sort((a,b)=>a.hp-b.hp)[0];
+        const rnd=Math.random();
+        const armorMode=gameConfig.armorMode;
+        let zone;
+        if (target.armor>0&&armorMode==='hp') zone=rnd<0.6?'torso':rnd<0.8?'head':rnd<0.9?'arms':'legs';
+        else zone=rnd<0.3?'head':rnd<0.75?'torso':rnd<0.88?'arms':'legs';
+
+        const shots = Math.min(w.burstCount, w.currentAmmo);
+        for (let s=0; s<shots&&!target.dead&&w.currentAmmo>0; s++) {
+          w.currentAmmo--;
+          const acc = getAccuracy(zone);
+          if (Math.random()*100 >= acc) continue;
+          const dmg = calculateDamageSilent(w, zone, target);
+          applyDamageSilent(target, dmg, target.armor>0);
+        }
+      }
+    }
+
+    const next = (turnIdx+1) % all.length;
+    if (next <= turnIdx) {
+      round++;
+      if (round > maxRounds) break;
+    }
+    turnIdx = next;
+
+    const opsAlive = ops.filter(o=>!o.dead).length;
+    const ensAlive = ens.filter(e=>!e.dead).length;
+    if (opsAlive===0||ensAlive===0) break;
+  }
+
+  const opsAlive = ops.filter(o=>!o.dead).length;
+  const winner = opsAlive>0?'operators':'enemies';
+  const dmgOps = ops.reduce((s,o)=>s+o.stats.dmgDealt,0);
+  const dmgEns = ens.reduce((s,e)=>s+e.stats.dmgDealt,0);
+  return { winner, rounds:round, dmgOps, dmgEns };
+}
+
+function calculateDamageSilent(weapon, zone, target) {
+  const mults = { head:gameConfig.multHead, torso:gameConfig.multTorso, arms:gameConfig.multArms, legs:gameConfig.multLegs };
+  const variance = gameConfig.dmgVariance/100;
+  const roll = 1-variance+Math.random()*variance*2;
+  let base = weapon.baseDmg * mults[zone] * roll;
+  const hasArmor = target.armor>0;
+  if (weapon.ammoPenetrating) {
+    base *= hasArmor ? (1+gameConfig.penBonus/100) : gameConfig.penaltyEnabled ? (1-gameConfig.penPenalty/100) : 1;
+  } else if (weapon.ammoFragmentation) {
+    base *= !hasArmor ? (1+gameConfig.fragBonus/100) : gameConfig.penaltyEnabled ? (1-gameConfig.fragPenalty/100) : 1;
+  }
+  return Math.max(1, base);
+}
+
+function applyDamageSilent(target, damage, isArmorHit) {
+  if (gameConfig.armorMode==='hp') {
+    if (target.armor>0&&isArmorHit) {
+      const absorb=Math.min(target.armor,damage); target.armor-=absorb;
+      const overflow=damage-absorb; if(overflow>0) target.hp-=overflow;
+    } else target.hp-=damage;
+  } else {
+    if (target.armor>0) { target.hp-=damage*(1-target.armor/100); }
+    else target.hp-=damage;
+  }
+  if (target.hp<=0) { target.hp=0; target.dead=true; }
+}
+
+// ===================== STATS =====================
+function avg(arr) { return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0; }
+function pct(val,total) { return total>0?Math.round(val/total*100):0; }
+
+function generateStats() {
+  const ops = combatState.operators, ens = combatState.enemies;
+  const opsShots=combatStats.shots.operators||0, opsHits=combatStats.hits.operators||0;
+  const ensShots=combatStats.shots.enemies||0, ensHits=combatStats.hits.enemies||0;
+
+  document.getElementById('stats-content').innerHTML = `
+    <div class="stat-block">
+      <div class="section-title">📋 Resumen</div>
+      <table class="stat-table">
+        <tr><td>Resultado</td><td class="${combatStats.winner==='operators'?'val-green':'val-red'}">${combatStats.winner==='operators'?'VICTORIA':'DERROTA'}</td></tr>
+        <tr><td>Rondas</td><td class="val">${combatStats.rounds}</td></tr>
+        <tr><td>Modo Armadura</td><td class="val">${gameConfig.armorMode==='hp'?'Vida Extra':'% Mitigación'}</td></tr>
+        <tr><td>Daño a Armadura</td><td class="val">${Math.round(combatStats.armorDmg)}</td></tr>
+        <tr><td>Daño a HP</td><td class="val">${Math.round(combatStats.hpDmg)}</td></tr>
+      </table>
+    </div>
+    <div class="stat-block">
+      <div class="section-title">🎯 Precisión</div>
+      <table class="stat-table">
+        <tr><th></th><th>Disparos</th><th>Impactos</th><th>Fallos</th><th>%Hit</th></tr>
+        <tr><td style="color:var(--green)">OPS</td><td class="val">${opsShots}</td><td class="val-green">${opsHits}</td><td class="val-red">${combatStats.misses.operators}</td><td class="val">${pct(opsHits,opsShots)}%</td></tr>
+        <tr><td style="color:var(--red)">ENE</td><td class="val">${ensShots}</td><td class="val-green">${ensHits}</td><td class="val-red">${combatStats.misses.enemies}</td><td class="val">${pct(ensHits,ensShots)}%</td></tr>
+      </table>
+    </div>
+    <div class="stat-block">
+      <div class="section-title">🟢 Operadores</div>
+      <table class="stat-table">
+        <tr><th>Nombre</th><th>HP</th><th>DMG</th><th>Kills</th></tr>
+        ${ops.map(o=>`<tr><td>${o.name}${o.dead?' ☠':''}</td><td class="${o.dead?'val-red':'val-green'}">${Math.round(o.hp)}/${o.maxHp}</td><td class="val">${Math.round(o.stats.dmgDealt)}</td><td class="val">${o.stats.kills}</td></tr>`).join('')}
+      </table>
+    </div>
+    <div class="stat-block">
+      <div class="section-title">🔴 Enemigos</div>
+      <table class="stat-table">
+        <tr><th>Nombre</th><th>HP</th><th>DMG</th><th>Kills</th></tr>
+        ${ens.map(e=>`<tr><td>${e.name}${e.dead?' ☠':''}</td><td class="${e.dead?'val-red':'val-green'}">${Math.round(e.hp)}/${e.maxHp}</td><td class="val">${Math.round(e.stats.dmgDealt)}</td><td class="val">${e.stats.kills}</td></tr>`).join('')}
+      </table>
+    </div>
+    <div class="stat-block">
+      <div class="section-title">🎯 Daño por Zona</div>
+      <table class="stat-table">
+        ${Object.entries(combatStats.dmgByZone).map(([z,d])=>`<tr><td>${zoneLabel(z)}</td><td class="val">${Math.round(d)}</td></tr>`).join('')}
+      </table>
+    </div>
+    <div class="stat-block">
+      <div class="section-title">🔴 Daño por Tipo de Bala</div>
+      <table class="stat-table">
+        <tr><td>Normal</td><td class="val">${Math.round(combatStats.dmgByAmmo.normal)}</td></tr>
+        <tr><td>Penetrante</td><td class="val-blue">${Math.round(combatStats.dmgByAmmo.penetrating)}</td></tr>
+        <tr><td>Fragmentación</td><td class="val-red">${Math.round(combatStats.dmgByAmmo.fragmentation)}</td></tr>
+      </table>
+    </div>`;
+}
+
+function generateBatchStats(results, N) {
+  const opWinPct = pct(results.opWins, N);
+  const enWinPct = pct(results.enWins, N);
+  const avgRounds = avg(results.rounds).toFixed(1);
+  const avgDmgOps = Math.round(avg(results.dmgOps));
+  const avgDmgEns = Math.round(avg(results.dmgEns));
+
+  document.getElementById('stats-content').innerHTML = `
+    <div class="stat-block" style="grid-column:1/-1;">
+      <div class="section-title">⚡ RESULTADOS — ${N} COMBATES IA vs IA</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;">
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:6px;">VICTORIAS OPERADORES</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:var(--green);line-height:1;">${results.opWins}<span style="font-size:20px;color:var(--text3)"> / ${N}</span></div>
+          <div style="font-size:14px;color:var(--green2);font-family:'Share Tech Mono',monospace;">${opWinPct}% WIN RATE</div>
+          <div class="batch-result-bar"><div class="batch-bar-fill-op" style="width:${opWinPct}%"></div></div>
+        </div>
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:6px;">VICTORIAS ENEMIGOS</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:var(--red);line-height:1;">${results.enWins}<span style="font-size:20px;color:var(--text3)"> / ${N}</span></div>
+          <div style="font-size:14px;color:var(--red2);font-family:'Share Tech Mono',monospace;">${enWinPct}% WIN RATE</div>
+          <div class="batch-result-bar"><div class="batch-bar-fill-en" style="width:${enWinPct}%"></div></div>
+        </div>
+      </div>
+      <table class="stat-table">
+        <tr><td>Rondas promedio</td><td class="val">${avgRounds}</td></tr>
+        <tr><td>Rondas mínimas</td><td class="val">${Math.min(...results.rounds)}</td></tr>
+        <tr><td>Rondas máximas</td><td class="val">${Math.max(...results.rounds)}</td></tr>
+        <tr><td>DMG promedio Operadores</td><td class="val-green">${avgDmgOps}</td></tr>
+        <tr><td>DMG promedio Enemigos</td><td class="val-red">${avgDmgEns}</td></tr>
+        <tr><td>Modo Armadura</td><td class="val">${gameConfig.armorMode==='hp'?'Vida Extra':'% Mitigación'}</td></tr>
+      </table>
+    </div>
+    <div class="stat-block" style="grid-column:1/-1;">
+      <div style="color:var(--text3);font-family:'Share Tech Mono',monospace;font-size:12px;">
+        Precisión IA usada: Cabeza ${gameConfig.aiAccHead}% | Torso ${gameConfig.aiAccTorso}% | Brazos ${gameConfig.aiAccArms}% | Piernas ${gameConfig.aiAccLegs}%
+      </div>
+    </div>`;
+}
+
+function resetStats() {
+  combatStats = null; batchStats = null;
+  document.getElementById('stats-content').innerHTML = `
+    <div class="stat-block" style="grid-column:1/-1;">
+      <div style="color:var(--text3);font-family:'Share Tech Mono',monospace;font-size:13px;">Estadísticas reseteadas.</div>
+    </div>`;
+}
+
+// ===================== INIT =====================
+function init() {
+  addOperator(); addOperator();
+  addEnemy(); addEnemy();
+  document.getElementById('penalty-enabled').addEventListener('change', function() {
+    document.getElementById('pen-penalty-row').style.opacity = this.checked?'1':'0.4';
+    document.getElementById('frag-penalty-row').style.opacity = this.checked?'1':'0.4';
+  });
+}
+init();
+</script>
+</body>
+</html>
